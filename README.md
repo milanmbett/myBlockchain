@@ -68,7 +68,7 @@ Example: `"Hello"` → `2cf24dba4f21d4288094...` (64 character hash)
 ## 🔧 Core Components
 
 ### Block Structure
-Our blockchain consists of linked blocks, each containing:
+The blockchain consists of linked blocks, each containing:
 1. **Header Information**: Hash, previous hash, timestamp, nonce
 2. **Transaction Data**: All transactions included in this block
 3. **Merkle Root**: Single hash representing all transactions
