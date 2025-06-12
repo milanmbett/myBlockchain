@@ -1,145 +1,259 @@
+
 package myBlockchain;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.security.Security;
+import java.util.ArrayList;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import myBlockchain.Blockchain.Block;
+import myBlockchain.Transactions.Transaction;
+import myBlockchain.Transactions.Wallet;
+
 public class BlockTest 
-{    
+{
+    private Block testBlock;
+    private static Wallet walletA;
+    private static Wallet walletB;
+    
+    @BeforeAll
+    public static void setupClass() {
+        // Add BouncyCastle provider for cryptographic operations
+        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        
+        // Create test wallets
+        walletA = new Wallet();
+        walletB = new Wallet();
+    }
+    
+    @BeforeEach
+    public void setup() {
+        testBlock = new Block("0");
+    }
+    
     /*
      * Testing if Block constructor creates
-     * a block with correct data and previousHash
+     * a valid block with proper initialization
      */
     @Test
-    public void test1()
-    {
-        String testData = "Test Block Data";
-        String testPreviousHash = "0000000000000000000000000000000000000000000000000000000000000000";
-        
-        Block block = new Block(testData, testPreviousHash);
-        
-        assertEquals(testPreviousHash, block.previousHash, "Previous hash should match constructor input");
-        assertNotNull(block.hash, "Hash should be calculated and not null");
-    }    
+    public void testBlockCreation() {
+        assertNotNull(testBlock, "Block should not be null");
+        assertNotNull(testBlock.hash, "Block hash should not be null");
+        assertNotNull(testBlock.previousHash, "Previous hash should not be null");
+        assertEquals("0", testBlock.previousHash, "Previous hash should match constructor parameter");
+        assertNotNull(testBlock.transactions, "Transactions list should not be null");
+        assertTrue(testBlock.transactions.isEmpty(), "New block should have empty transactions list");
+    }
+    
     /*
-     * Testing if Block constructor sets
-     * a reasonable timestamp (close to current time)
+     * Testing if calculateHash() returns
+     * a non-null, non-empty hash string
      */
     @Test
-    public void test2()
-    {
-        long beforeCreation = System.currentTimeMillis();
-        Block block = new Block("Test Data", "0");
-        long afterCreation = System.currentTimeMillis();
+    public void testCalculateHashNotEmpty() {
+        String hash = testBlock.calculateHash();
         
-        assertTrue(afterCreation >= beforeCreation, "Block should be created within reasonable time");
+        assertNotNull(hash, "Calculated hash should not be null");
+        assertFalse(hash.isEmpty(), "Calculated hash should not be empty");
+        assertEquals(64, hash.length(), "SHA-256 hash should be exactly 64 characters long");
+    }
+    
+    /*
+     * Testing if calculateHash() returns
+     * consistent results for the same block
+     */
+    @Test
+    public void testCalculateHashConsistency() {
+        String hash1 = testBlock.calculateHash();
+        String hash2 = testBlock.calculateHash();
         
-        try 
-        {
+        assertEquals(hash1, hash2, "Hash calculation should be consistent");
+    }
+    
+    /*
+     * Testing if calculateHash() returns
+     * different hashes for different blocks
+     */
+    @Test
+    public void testCalculateHashUniqueness() {
+        Block block1 = new Block("0");
+        Block block2 = new Block("1");
+        
+        // Wait a moment to ensure different timestamps
+        try {
             Thread.sleep(1);
-        } 
-        catch (InterruptedException e) 
-        {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
         
-        Block block2 = new Block("Test Data", "0");
-        assertNotEquals(block.hash, block2.hash, "Blocks created at different times should have different hashes");
-    }    
+        String hash1 = block1.calculateHash();
+        String hash2 = block2.calculateHash();
+        
+        assertNotEquals(hash1, hash2, "Different blocks should have different hashes");
+    }
+    
     /*
-     * Testing if Block constructor calculates
-     * and sets a non-null, non-empty hash
+     * Testing if hash contains only
+     * hexadecimal characters (0-9, a-f)
      */
     @Test
-    public void test3()
-    {
-        Block block = new Block("Test Data", "Previous Hash");
+    public void testHashFormat() {
+        String hash = testBlock.calculateHash();
         
-        assertNotNull(block.hash, "Hash should not be null");
-        assertFalse(block.hash.isEmpty(), "Hash should not be empty");
-        assertEquals(64, block.hash.length(), "Hash should be 64 characters long (SHA-256)");
-        assertTrue(block.hash.matches("[0-9a-f]+"), "Hash should contain only hexadecimal characters");
-    }    
+        assertTrue(hash.matches("[0-9a-f]+"), "Hash should contain only hexadecimal characters (0-9, a-f)");
+    }
+    
     /*
-     * Testing if two blocks with same data and previousHash
-     * but different timestamps have different hashes
+     * Testing if addTransaction() properly
+     * adds valid transactions to the block
      */
     @Test
-    public void test4()
-    {
-        Block block1 = new Block("Same Data", "Same Previous Hash");
+    public void testAddValidTransaction() {
+        // Create a simple transaction (for genesis block)
+        Transaction transaction = new Transaction(walletA.publicKey, walletB.publicKey, 50f, null);
+        transaction.transactionId = "test_transaction";
         
-        try 
-        {
-            Thread.sleep(1);
-        } 
-        catch (InterruptedException e) 
-        {
-            Thread.currentThread().interrupt();
-        }
+        boolean result = testBlock.addTransaction(transaction);
         
-        Block block2 = new Block("Same Data", "Same Previous Hash");
-        
-        assertNotEquals(block1.hash, block2.hash, "Blocks with same data but different timestamps should have different hashes");
-    }    
+        assertTrue(result, "Adding valid transaction should return true");
+        assertEquals(1, testBlock.transactions.size(), "Block should contain one transaction");
+        assertEquals(transaction, testBlock.transactions.get(0), "Block should contain the added transaction");
+    }
+    
     /*
-     * Testing if blocks with different data
-     * have different hashes
+     * Testing if addTransaction() rejects
+     * null transactions
      */
     @Test
-    public void test5()
-    {
-        Block block1 = new Block("Data 1", "Same Previous Hash");
-        Block block2 = new Block("Data 2", "Same Previous Hash");
+    public void testAddNullTransaction() {
+        boolean result = testBlock.addTransaction(null);
         
-        assertNotEquals(block1.hash, block2.hash, "Blocks with different data should have different hashes");
-    }    
+        assertFalse(result, "Adding null transaction should return false");
+        assertTrue(testBlock.transactions.isEmpty(), "Block should remain empty after adding null transaction");
+    }
+    
     /*
-     * Testing if blocks with different previousHash
-     * have different hashes
+     * Testing if mineBlock() changes
+     * the block hash and sets merkle root
      */
     @Test
-    public void test6()
-    {
-        Block block1 = new Block("Same Data", "Previous Hash 1");
-        Block block2 = new Block("Same Data", "Previous Hash 2");
+    public void testMineBlock() {
+        // Add a transaction before mining
+        Transaction transaction = new Transaction(walletA.publicKey, walletB.publicKey, 50f, null);
+        transaction.transactionId = "test_transaction";
+        testBlock.addTransaction(transaction);
         
-        assertNotEquals(block1.hash, block2.hash, "Blocks with different previous hashes should have different hashes");
-    }    
+        String originalHash = testBlock.hash;
+        
+        // Mine with low difficulty for faster testing
+        testBlock.mineBlock(1);
+        
+        assertNotEquals(originalHash, testBlock.hash, "Mining should change the block hash");
+        assertNotNull(testBlock.merkleRoot, "Mining should set merkle root");
+        assertFalse(testBlock.merkleRoot.isEmpty(), "Merkle root should not be empty");
+    }
+    
     /*
-     * Testing blockchain integrity:
-     * creating a chain where each block's hash
-     * becomes the next block's previousHash
+     * Testing if mineBlock() produces
+     * hash that meets difficulty requirement
      */
     @Test
-    public void test7()
-    {
-        Block genesisBlock = new Block("Genesis Block", "0");
-        Block secondBlock = new Block("Second Block", genesisBlock.hash);
-        assertEquals(genesisBlock.hash, secondBlock.previousHash, "Second block's previousHash should match genesis block's hash");
+    public void testMineBlockDifficulty() {
+        // Add a transaction before mining
+        Transaction transaction = new Transaction(walletA.publicKey, walletB.publicKey, 50f, null);
+        transaction.transactionId = "test_transaction";
+        testBlock.addTransaction(transaction);
         
-        Block thirdBlock = new Block("Third Block", secondBlock.hash);
-        assertEquals(secondBlock.hash, thirdBlock.previousHash, "Third block's previousHash should match second block's hash");
-        assertNotEquals(genesisBlock.hash, secondBlock.hash, "Genesis and second block should have different hashes");
-        assertNotEquals(secondBlock.hash, thirdBlock.hash, "Second and third block should have different hashes");
-        assertNotEquals(genesisBlock.hash, thirdBlock.hash, "Genesis and third block should have different hashes");
-    } 
+        int difficulty = 2;
+        testBlock.mineBlock(difficulty);
+        
+        String expectedPrefix = "00"; // difficulty of 2 means 2 leading zeros
+        assertTrue(testBlock.hash.startsWith(expectedPrefix), 
+                  "Mined hash should start with " + difficulty + " zeros");
+    }
+    
     /*
-     * Testing Block creation with null data
-     * should not crash and handle gracefully
+     * Testing if mining with higher difficulty
+     * produces more leading zeros
      */
     @Test
-    public void test8()
-    {
-        try 
-        {
-            Block block = new Block(null, "Previous Hash");
-            assertNotNull(block.hash, "Hash should still be calculated even with null data");
-            assertNotNull(block.previousHash, "Previous hash should be set");
-        } 
-        catch (Exception e) 
-        {
-            assertTrue(e instanceof RuntimeException, "Should throw RuntimeException when data is null");
-        }
+    public void testMineBlockHigherDifficulty() {
+        // Add a transaction before mining
+        Transaction transaction = new Transaction(walletA.publicKey, walletB.publicKey, 50f, null);
+        transaction.transactionId = "test_transaction";
+        testBlock.addTransaction(transaction);
+        
+        int difficulty = 3;
+        testBlock.mineBlock(difficulty);
+        
+        String expectedPrefix = "000"; // difficulty of 3 means 3 leading zeros
+        assertTrue(testBlock.hash.startsWith(expectedPrefix), 
+                  "Mined hash should start with " + difficulty + " zeros");
+    }
+    
+    /*
+     * Testing if blocks can be properly
+     * chained together with previous hashes
+     */
+    @Test
+    public void testBlockChaining() {
+        Block block1 = new Block("0");
+        
+        // Add transaction and mine first block
+        Transaction transaction1 = new Transaction(walletA.publicKey, walletB.publicKey, 50f, null);
+        transaction1.transactionId = "transaction_1";
+        block1.addTransaction(transaction1);
+        block1.mineBlock(1);
+        
+        // Create second block with first block's hash
+        Block block2 = new Block(block1.hash);
+        
+        assertEquals(block1.hash, block2.previousHash, "Second block should reference first block's hash");
+        assertNotEquals(block1.hash, block2.hash, "Blocks should have different hashes");
+    }
+    
+    /*
+     * Testing if block with multiple transactions
+     * calculates merkle root correctly
+     */
+    @Test
+    public void testMultipleTransactions() {
+        // Add multiple transactions
+        Transaction transaction1 = new Transaction(walletA.publicKey, walletB.publicKey, 25f, null);
+        transaction1.transactionId = "transaction_1";
+        Transaction transaction2 = new Transaction(walletB.publicKey, walletA.publicKey, 15f, null);
+        transaction2.transactionId = "transaction_2";
+        
+        testBlock.addTransaction(transaction1);
+        testBlock.addTransaction(transaction2);
+        
+        assertEquals(2, testBlock.transactions.size(), "Block should contain two transactions");
+        
+        // Mine the block to calculate merkle root
+        testBlock.mineBlock(1);
+        
+        assertNotNull(testBlock.merkleRoot, "Merkle root should be calculated");
+        assertFalse(testBlock.merkleRoot.isEmpty(), "Merkle root should not be empty");
+        assertEquals(64, testBlock.merkleRoot.length(), "Merkle root should be 64 characters (SHA-256 hash)");
+    }
+    
+    /*
+     * Testing if empty block (no transactions)
+     * can still be mined successfully
+     */
+    @Test
+    public void testMineEmptyBlock() {
+        // Don't add any transactions
+        assertTrue(testBlock.transactions.isEmpty(), "Block should be empty initially");
+        
+        // Mine empty block
+        testBlock.mineBlock(1);
+        
+        assertTrue(testBlock.hash.startsWith("0"), "Empty block should still be mineable");
+        assertEquals("", testBlock.merkleRoot, "Empty block should have empty merkle root");
     }
 }
