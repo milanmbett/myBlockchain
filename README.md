@@ -341,7 +341,7 @@ public static float minimumTransaction = 0.1f; // Minimum transaction amount
 - Simplified mining (real mining uses more sophisticated algorithms)
 
 ### Performance Notes
-- Mining time increases exponentially with difficulty(recommended: around 4)
+- Mining time increases exponentially with difficulty
 - Large transactions may consume significant memory
 - Test with small amounts and low difficulty for faster execution
 
