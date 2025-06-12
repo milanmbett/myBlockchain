@@ -68,7 +68,7 @@ Example: `"Hello"` → `2cf24dba4f21d4288094...` (64 character hash)
 ## 🔧 Core Components
 
 ### Block Structure
-Our blockchain consists of linked blocks, each containing:
+The blockchain consists of linked blocks, each containing:
 1. **Header Information**: Hash, previous hash, timestamp, nonce
 2. **Transaction Data**: All transactions included in this block
 3. **Merkle Root**: Single hash representing all transactions
@@ -133,7 +133,7 @@ Hash(1) Hash(2)      Hash(3)  Hash(4)
 - **Security**: Tamper detection without downloading entire block
 
 ### 🔐 Cryptographic Security
-Our implementation uses industry-standard cryptography:
+The implementation uses industry-standard cryptography:
 
 **ECDSA (Elliptic Curve Digital Signature Algorithm):**
 - Creates public/private key pairs
@@ -148,7 +148,7 @@ Our implementation uses industry-standard cryptography:
 - Ensures data integrity
 
 ### 🔄 UTXO Model vs Account Model
-Our blockchain uses the **UTXO (Unspent Transaction Output)** model:
+The blockchain uses the **UTXO (Unspent Transaction Output)** model:
 
 **UTXO Model (Bitcoin-style):**
 - Tracks individual "coins" or outputs
@@ -245,7 +245,7 @@ mvn surefire-report:report
 ```
 
 ### Test Coverage
-Our test suite covers:
+The test suite covers:
 - **Block Functionality**: Hash calculation, mining, and validation
 - **Cryptographic Utilities**: SHA-256 hashing and ECDSA signatures
 - **Transaction Processing**: Input/output validation and signature verification
